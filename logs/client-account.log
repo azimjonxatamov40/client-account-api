@@ -1,0 +1,10 @@
+2026-11-18 00:48:26 [CLIENT-ACCOUNT housekeeper] WARN  com.zaxxer.hikari.pool.HikariPool - CLIENT-ACCOUNT - Thread starvation or clock leap detected (housekeeper delta=1h11m17s133ms).
+2026-11-18 02:04:35 [CLIENT-ACCOUNT housekeeper] WARN  com.zaxxer.hikari.pool.HikariPool - CLIENT-ACCOUNT - Thread starvation or clock leap detected (housekeeper delta=1h16m8s452ms).
+2026-11-18 03:42:05 [CLIENT-ACCOUNT housekeeper] WARN  com.zaxxer.hikari.pool.HikariPool - CLIENT-ACCOUNT - Thread starvation or clock leap detected (housekeeper delta=1h37m29s838ms).
+2026-11-18 04:52:26 [CLIENT-ACCOUNT housekeeper] WARN  com.zaxxer.hikari.pool.HikariPool - CLIENT-ACCOUNT - Thread starvation or clock leap detected (housekeeper delta=1h10m21s152ms).
+2026-11-18 06:10:07 [CLIENT-ACCOUNT housekeeper] WARN  com.zaxxer.hikari.pool.HikariPool - CLIENT-ACCOUNT - Thread starvation or clock leap detected (housekeeper delta=1h17m41s387ms).
+2026-11-18 07:10:21 [CLIENT-ACCOUNT housekeeper] WARN  com.zaxxer.hikari.pool.HikariPool - CLIENT-ACCOUNT - Thread starvation or clock leap detected (housekeeper delta=1h14s93ms).
+2026-11-18 08:16:07 [CLIENT-ACCOUNT housekeeper] WARN  com.zaxxer.hikari.pool.HikariPool - CLIENT-ACCOUNT - Thread starvation or clock leap detected (housekeeper delta=1h5m45s340ms).
+2026-11-18 09:25:44 [CLIENT-ACCOUNT housekeeper] WARN  com.zaxxer.hikari.pool.HikariPool - CLIENT-ACCOUNT - Thread starvation or clock leap detected (housekeeper delta=1h9m37s784ms).
+2026-11-18 09:26:13 [CLIENT-ACCOUNT housekeeper] WARN  com.zaxxer.hikari.pool.HikariPool - CLIENT-ACCOUNT - Retrograde clock change detected (housekeeper delta=28s862ms), soft-evicting connections from pool.
+2026-11-18 09:31:11 [http-nio-8080-exec-2] INFO  c.i.c.controller.AccountController - GetOperations start: id: 5, from: null, to: null
