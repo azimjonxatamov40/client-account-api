@@ -3,7 +3,6 @@ package com.is.clientaccountapi.model.client;
 import lombok.Builder;
 import lombok.Getter;
 
-// Postman'ga qaytadigan JSON
 @Getter
 @Builder
 public class ClientInfo {

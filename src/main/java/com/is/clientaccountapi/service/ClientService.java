@@ -21,7 +21,6 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class ClientService {
-
     private final JdbcTemplate jdbcTemplate;
     private final CheckRequest checkRequest;
 
@@ -37,7 +36,6 @@ public class ClientService {
             "       c.created_at \n" +
             "  from cm_client c \n";
 
-    // Bazadagi qatorni ClientInfo ga aylantirish
     private static final RowMapper<ClientInfo> CLIENT_MAPPER = (rs, rowNum) -> {
         Date birthDate = rs.getDate("birth_date");
         return ClientInfo.builder()
@@ -54,10 +52,7 @@ public class ClientService {
                 .build();
     };
 
-    // POST /api/v1/clients - Mijoz qo'shish
     public ApiResponse<ClientInfo> createClient(ClientRequest request) {
-
-        // 1. Majburiy maydonlarni tekshirish
         List<String> fields = new ArrayList<>();
         if (checkRequest.isEmpty(request.getPinfl())) {
             fields.add("pinfl");
@@ -72,7 +67,6 @@ public class ClientService {
             return ApiResponse.error(ErrorCode.EMPTY_PARAM, fields);
         }
 
-        // 2. Qiymatlarni tekshirish
         boolean hasBirthDate = !checkRequest.isEmpty(request.getBirthDate());
         if (!request.getPinfl().matches("\\d{14}")) {
             fields.add("pinfl");
@@ -85,17 +79,16 @@ public class ClientService {
         }
 
         try {
-            // 3. Bu PINFL bilan mijoz bormi
-            Integer count = jdbcTemplate.queryForObject(
-                    "select count(*) from cm_client c where c.pinfl = ?", Integer.class, request.getPinfl());
+            Integer count = jdbcTemplate.queryForObject("select count(*) \n" +
+                    "  from cm_client c \n" +
+                    " where c.pinfl = ? \n" +
+                    "   and rownum = 1", Integer.class, request.getPinfl());
             if (count != null && count > 0) {
                 return ApiResponse.error(ErrorCode.CLIENT_EXISTS, Collections.singletonList("pinfl"));
             }
 
-            // 4. Yangi ID olish
             Long id = jdbcTemplate.queryForObject("select cm_client_seq.nextval from dual", Long.class);
 
-            // 5. Bazaga yozish
             jdbcTemplate.update("insert into cm_client \n" +
                             "  (id, pinfl, first_name, last_name, patronymic, birth_date, passport, phone) \n" +
                             "values (?, ?, ?, ?, ?, ?, ?, ?)",
@@ -110,17 +103,13 @@ public class ClientService {
 
             log.info("Client created: id: {}, pinfl: {}", id, request.getPinfl());
 
-            // 6. Yozilgan mijozni bazadan o'qib qaytarish
-            return ApiResponse.ok(getClient(id), 201);
+            return ApiResponse.ok(getActiveClient(id), 201);
         } catch (Exception e) {
             return checkRequest.dbError(e);
         }
     }
 
-    // GET /api/v1/clients - Mijozlar ro'yxati (sahifalab, qidirish bilan)
     public ApiResponse<ClientPage> getClients(Integer page, Integer size, String search) {
-
-        // 1. Parametrlarni tekshirish
         int p = page == null ? 0 : page;
         int s = size == null ? 20 : size;
 
@@ -135,13 +124,12 @@ public class ClientService {
             return ApiResponse.error(ErrorCode.INVALID_PARAM, fields);
         }
 
-        // 2. Shart: faqat faol mijozlar + qidiruv (berilgan bo'lsa)
         String where = " where c.state = 1 \n";
         List<Object> args = new ArrayList<>();
 
         if (!checkRequest.isEmpty(search)) {
             where += "   and (lower(c.first_name) like ? \n" +
-                    "     or lower(c.last_name) like ? \n" +
+                    "     or lower(c.last_name)  like ? \n" +
                     "     or lower(c.patronymic) like ?) \n";
             String like = "%" + search.toLowerCase() + "%";
             args.add(like);
@@ -150,25 +138,24 @@ public class ClientService {
         }
 
         try {
-            // 3. Jami nechta mijoz bor
             Long total = jdbcTemplate.queryForObject(
-                    "select count(*) from cm_client c " + where, Long.class, args.toArray());
-
-            // 4. Faqat shu sahifadagi mijozlarni olish
-            String sql = "select * from ( \n" +
-                    "  select t.*, rownum rn from ( \n" +
-                    CLIENT_SELECT + where +
-                    "     order by c.id \n" +
-                    "  ) t where rownum <= ? \n" +
-                    ") where rn > ?";
-
-            args.add((p + 1) * s);   // oxirgi qator
-            args.add(p * s);         // birinchi qatordan oldingi
-
-            List<ClientInfo> clients = jdbcTemplate.query(sql, CLIENT_MAPPER, args.toArray());
-
-            // 5. Javobni yig'ish
+                    "select count(*) from cm_client c \n" + where, Long.class, args.toArray());
             long totalCount = total == null ? 0 : total;
+
+            List<ClientInfo> clients = Collections.emptyList();
+            if ((long) p * s < totalCount) {
+                String sql = "select * \n" +
+                        "  from (select t.*, rownum rn \n" +
+                        "          from (" + CLIENT_SELECT + where +
+                        "                 order by c.id) t \n" +
+                        "         where rownum <= ?) \n" +
+                        " where rn > ?";
+
+                args.add((p + 1) * s);
+                args.add(p * s);
+                clients = jdbcTemplate.query(sql, CLIENT_MAPPER, args.toArray());
+            }
+
             ClientPage result = ClientPage.builder()
                     .content(clients)
                     .page(p)
@@ -183,16 +170,12 @@ public class ClientService {
         }
     }
 
-    // GET /api/v1/clients/{id} - Bitta mijoz
     public ApiResponse<ClientInfo> getClientById(Long id) {
-
-        // 1. ID tekshirish
         if (id == null || id <= 0) {
             return ApiResponse.error(ErrorCode.INVALID_PARAM, Collections.singletonList("id"));
         }
 
         try {
-            // 2. Topilmasa yoki o'chirilgan bo'lsa - 404
             ClientInfo client = getActiveClient(id);
             if (client == null) {
                 return ApiResponse.error(ErrorCode.CLIENT_NOT_FOUND, Collections.singletonList("id"));
@@ -204,15 +187,11 @@ public class ClientService {
         }
     }
 
-    // PUT /api/v1/clients/{id} - Mijoz ma'lumotini o'zgartirish
     public ApiResponse<ClientInfo> updateClient(Long id, ClientRequest request) {
-
-        // 1. ID tekshirish
         if (id == null || id <= 0) {
             return ApiResponse.error(ErrorCode.INVALID_PARAM, Collections.singletonList("id"));
         }
 
-        // 2. Majburiy maydonlarni tekshirish
         List<String> fields = new ArrayList<>();
         if (checkRequest.isEmpty(request.getFirstName())) {
             fields.add("firstName");
@@ -224,20 +203,13 @@ public class ClientService {
             return ApiResponse.error(ErrorCode.EMPTY_PARAM, fields);
         }
 
-        // 3. Sanani tekshirish
         boolean hasBirthDate = !checkRequest.isEmpty(request.getBirthDate());
         if (hasBirthDate && !checkRequest.isDate(request.getBirthDate())) {
             return ApiResponse.error(ErrorCode.INVALID_PARAM, Collections.singletonList("birthDate"));
         }
 
         try {
-            // 4. Mijoz bormi va faolmi
-            if (getActiveClient(id) == null) {
-                return ApiResponse.error(ErrorCode.CLIENT_NOT_FOUND, Collections.singletonList("id"));
-            }
-
-            // 5. Bazada yangilash (pinfl o'zgarmaydi)
-            jdbcTemplate.update("update cm_client c \n" +
+            int updated = jdbcTemplate.update("update cm_client c \n" +
                             "   set c.first_name = ?, \n" +
                             "       c.last_name  = ?, \n" +
                             "       c.patronymic = ?, \n" +
@@ -245,7 +217,8 @@ public class ClientService {
                             "       c.passport   = ?, \n" +
                             "       c.phone      = ?, \n" +
                             "       c.updated_at = sysdate \n" +
-                            " where c.id = ?",
+                            " where c.id = ? \n" +
+                            "   and c.state <> 0",
                     request.getFirstName(),
                     request.getLastName(),
                     request.getPatronymic(),
@@ -254,28 +227,26 @@ public class ClientService {
                     request.getPhone(),
                     id);
 
+            if (updated == 0) {
+                return ApiResponse.error(ErrorCode.CLIENT_NOT_FOUND, Collections.singletonList("id"));
+            }
+
             log.info("Client updated: id: {}", id);
 
-            // 6. Yangilangan mijozni qaytarish
-            return ApiResponse.ok(getClient(id), 200);
+            return ApiResponse.ok(getActiveClient(id), 200);
         } catch (Exception e) {
             return checkRequest.dbError(e);
         }
     }
 
-    // DELETE /api/v1/clients/{id} - Mijozni bazadan o'chirish
     public ApiResponse<Boolean> deleteClient(Long id) {
-
-        // 1. ID tekshirish
         if (id == null || id <= 0) {
             return ApiResponse.error(ErrorCode.INVALID_PARAM, Collections.singletonList("id"));
         }
 
         try {
-            // 2. Bazadan o'chirish
             int deleted = jdbcTemplate.update("delete from cm_client c where c.id = ?", id);
 
-            // 3. Hech narsa o'chmagan bo'lsa - bunday mijoz yo'q
             if (deleted == 0) {
                 return ApiResponse.error(ErrorCode.CLIENT_NOT_FOUND, Collections.singletonList("id"));
             }
@@ -288,15 +259,10 @@ public class ClientService {
         }
     }
 
-    // Faol mijozni ID bo'yicha olish (topilmasa yoki o'chirilgan bo'lsa - null)
     public ClientInfo getActiveClient(Long id) {
-        ClientInfo client = getClient(id);
-        return client == null || client.getState() == 0 ? null : client;
-    }
-
-    // Mijozni ID bo'yicha olish (topilmasa - null)
-    ClientInfo getClient(Long id) {
-        List<ClientInfo> list = jdbcTemplate.query(CLIENT_SELECT + " where c.id = ?", CLIENT_MAPPER, id);
+        List<ClientInfo> list = jdbcTemplate.query(CLIENT_SELECT +
+                " where c.id = ? \n" +
+                "   and c.state <> 0", CLIENT_MAPPER, id);
         return list.isEmpty() ? null : list.get(0);
     }
 }

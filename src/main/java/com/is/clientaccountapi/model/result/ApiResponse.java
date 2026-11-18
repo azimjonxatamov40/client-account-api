@@ -3,6 +3,7 @@ package com.is.clientaccountapi.model.result;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import org.springframework.http.ResponseEntity;
 
 import java.util.List;
 
@@ -12,15 +13,14 @@ public class ApiResponse<T> {
     private T data;
     private Boolean success;
     private ErrorInfo error;
+
     @JsonIgnore
     private int httpStatus;
 
-    // Muvaffaqiyatli javob (status beriladi: 200 yoki 201)
     public static <T> ApiResponse<T> ok(T data, int httpStatus) {
         return new ApiResponse<>(data, true, null, httpStatus);
     }
 
-    // Xato javob
     public static <T> ApiResponse<T> error(ErrorCode code, String cause, List<String> fields) {
         ErrorInfo errorInfo = ErrorInfo.builder()
                 .code(code.getCode())
@@ -33,5 +33,9 @@ public class ApiResponse<T> {
 
     public static <T> ApiResponse<T> error(ErrorCode code, List<String> fields) {
         return error(code, code.getCause(), fields);
+    }
+
+    public ResponseEntity<ApiResponse<T>> toResponse() {
+        return ResponseEntity.status(httpStatus).body(this);
     }
 }

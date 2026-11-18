@@ -1,13 +1,11 @@
 package com.is.clientaccountapi.model.account;
 
-import lombok.*;
+import lombok.Getter;
+import lombok.Setter;
 
-// Postman'dan keladigan JSON
 @Getter
 @Setter
-@NoArgsConstructor
-@AllArgsConstructor
 public class DepositRequest {
-    private Long amount;      // tiyinda, 0 dan katta
-    private String purpose;   // to'lov maqsadi (ixtiyoriy)
+    private Long amount;
+    private String purpose;
 }

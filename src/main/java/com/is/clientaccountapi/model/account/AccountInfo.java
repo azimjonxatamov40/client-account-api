@@ -3,7 +3,6 @@ package com.is.clientaccountapi.model.account;
 import lombok.Builder;
 import lombok.Getter;
 
-// Postman'ga qaytadigan JSON
 @Getter
 @Builder
 public class AccountInfo {
@@ -12,8 +11,8 @@ public class AccountInfo {
     private String accountNumber;
     private String balanceType;
     private String currency;
-    private Long balance;        // tiyinda
-    private Integer state;       // 2 = ochiq, 3 = yopiq
+    private Long balance;
+    private Integer state;
     private String dateOpen;
     private String dateClose;
 }

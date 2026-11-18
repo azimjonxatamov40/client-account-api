@@ -5,13 +5,12 @@ import lombok.Getter;
 
 import java.util.List;
 
-// Sahifalangan ro'yxat
 @Getter
 @Builder
 public class ClientPage {
-    private List<ClientInfo> content;   // shu sahifadagi mijozlar
-    private Integer page;               // joriy sahifa
-    private Integer size;               // sahifa hajmi
-    private Long totalElements;         // jami mijozlar soni
-    private Integer totalPages;         // jami sahifalar soni
+    private List<ClientInfo> content;
+    private Integer page;
+    private Integer size;
+    private Long totalElements;
+    private Integer totalPages;
 }

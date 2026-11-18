@@ -3,7 +3,6 @@ package com.is.clientaccountapi.model.client;
 import lombok.Getter;
 import lombok.Setter;
 
-// Postman'dan keladigan JSON
 @Getter
 @Setter
 public class ClientRequest {
@@ -11,7 +10,7 @@ public class ClientRequest {
     private String firstName;
     private String lastName;
     private String patronymic;
-    private String birthDate;   // yyyy-mm-dd
+    private String birthDate;
     private String passport;
     private String phone;
 }

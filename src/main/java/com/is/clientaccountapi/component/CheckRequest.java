@@ -11,12 +11,10 @@ import java.time.format.DateTimeParseException;
 @Slf4j
 @Component
 public class CheckRequest {
-
     public boolean isEmpty(String value) {
         return value == null || value.isEmpty();
     }
 
-    // "yyyy-mm-dd" ko'rinishidagi sanami
     public boolean isDate(String value) {
         try {
             LocalDate.parse(value);

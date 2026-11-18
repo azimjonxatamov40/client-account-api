@@ -1,13 +1,10 @@
 package com.is.clientaccountapi.model.account;
 
-import lombok.*;
+import lombok.Builder;
+import lombok.Getter;
 
-// Postman'ga qaytadigan JSON: o'tkazmadan keyingi ikkala hisob
 @Getter
-@Setter
 @Builder
-@NoArgsConstructor
-@AllArgsConstructor
 public class TransferResult {
     private Long amount;
     private AccountInfo fromAccount;
