@@ -13,6 +13,7 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Service;
 
 import java.sql.Date;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -23,6 +24,8 @@ import java.util.List;
 public class ClientService {
     private final JdbcTemplate jdbcTemplate;
     private final CheckRequest checkRequest;
+
+    private static final DateTimeFormatter DATE_TIME = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     private static final String CLIENT_SELECT = "select c.id, \n" +
             "       c.pinfl, \n" +
@@ -48,7 +51,7 @@ public class ClientService {
                 .passport(rs.getString("passport"))
                 .phone(rs.getString("phone"))
                 .state(rs.getInt("state"))
-                .createdAt(rs.getTimestamp("created_at").toLocalDateTime().toString())
+                .createdAt(rs.getTimestamp("created_at").toLocalDateTime().format(DATE_TIME))
                 .build();
     };
 

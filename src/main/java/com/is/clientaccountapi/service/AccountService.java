@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.interceptor.TransactionAspectSupport;
 
 import java.sql.Date;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -32,6 +33,8 @@ public class AccountService {
     private final JdbcTemplate jdbcTemplate;
     private final CheckRequest checkRequest;
     private final ClientService clientService;
+
+    private static final DateTimeFormatter DATE_TIME = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     private static final List<String> CURRENCIES = Arrays.asList("860", "840", "978", "643");
 
@@ -74,7 +77,7 @@ public class AccountService {
             .accountId(rs.getLong("account_id"))
             .amount(rs.getLong("amount"))
             .purpose(rs.getString("purpose"))
-            .createdAt(rs.getTimestamp("created_at").toLocalDateTime().toString())
+            .createdAt(rs.getTimestamp("created_at").toLocalDateTime().format(DATE_TIME))
             .build();
 
     public ApiResponse<AccountInfo> openAccount(Long clientId, AccountRequest request) {
