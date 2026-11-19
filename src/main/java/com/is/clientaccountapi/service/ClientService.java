@@ -13,9 +13,7 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Service;
 
 import java.sql.Date;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 @Slf4j
@@ -24,8 +22,6 @@ import java.util.List;
 public class ClientService {
     private final JdbcTemplate jdbcTemplate;
     private final CheckRequest checkRequest;
-
-    private static final DateTimeFormatter DATE_TIME = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     private static final String CLIENT_SELECT = "select c.id, \n" +
             "       c.pinfl, \n" +
@@ -51,7 +47,7 @@ public class ClientService {
                 .passport(rs.getString("passport"))
                 .phone(rs.getString("phone"))
                 .state(rs.getInt("state"))
-                .createdAt(rs.getTimestamp("created_at").toLocalDateTime().format(DATE_TIME))
+                .createdAt(rs.getTimestamp("created_at").toLocalDateTime().format(CheckRequest.DATE_TIME))
                 .build();
     };
 
@@ -87,7 +83,7 @@ public class ClientService {
                     " where c.pinfl = ? \n" +
                     "   and rownum = 1", Integer.class, request.getPinfl());
             if (count != null && count > 0) {
-                return ApiResponse.error(ErrorCode.CLIENT_EXISTS, Collections.singletonList("pinfl"));
+                return ApiResponse.error(ErrorCode.CLIENT_EXISTS, "pinfl");
             }
 
             Long id = jdbcTemplate.queryForObject("select cm_client_seq.nextval from dual", Long.class);
@@ -145,7 +141,7 @@ public class ClientService {
                     "select count(*) from cm_client c \n" + where, Long.class, args.toArray());
             long totalCount = total == null ? 0 : total;
 
-            List<ClientInfo> clients = Collections.emptyList();
+            List<ClientInfo> clients = new ArrayList<>();
             if ((long) p * s < totalCount) {
                 String sql = "select * \n" +
                         "  from (select t.*, rownum rn \n" +
@@ -174,14 +170,14 @@ public class ClientService {
     }
 
     public ApiResponse<ClientInfo> getClientById(Long id) {
-        if (id == null || id <= 0) {
-            return ApiResponse.error(ErrorCode.INVALID_PARAM, Collections.singletonList("id"));
+        if (checkRequest.isInvalidId(id)) {
+            return ApiResponse.error(ErrorCode.INVALID_PARAM, "id");
         }
 
         try {
             ClientInfo client = getActiveClient(id);
             if (client == null) {
-                return ApiResponse.error(ErrorCode.CLIENT_NOT_FOUND, Collections.singletonList("id"));
+                return ApiResponse.error(ErrorCode.CLIENT_NOT_FOUND, "id");
             }
 
             return ApiResponse.ok(client, 200);
@@ -191,8 +187,8 @@ public class ClientService {
     }
 
     public ApiResponse<ClientInfo> updateClient(Long id, ClientRequest request) {
-        if (id == null || id <= 0) {
-            return ApiResponse.error(ErrorCode.INVALID_PARAM, Collections.singletonList("id"));
+        if (checkRequest.isInvalidId(id)) {
+            return ApiResponse.error(ErrorCode.INVALID_PARAM, "id");
         }
 
         List<String> fields = new ArrayList<>();
@@ -208,7 +204,7 @@ public class ClientService {
 
         boolean hasBirthDate = !checkRequest.isEmpty(request.getBirthDate());
         if (hasBirthDate && !checkRequest.isDate(request.getBirthDate())) {
-            return ApiResponse.error(ErrorCode.INVALID_PARAM, Collections.singletonList("birthDate"));
+            return ApiResponse.error(ErrorCode.INVALID_PARAM, "birthDate");
         }
 
         try {
@@ -231,7 +227,7 @@ public class ClientService {
                     id);
 
             if (updated == 0) {
-                return ApiResponse.error(ErrorCode.CLIENT_NOT_FOUND, Collections.singletonList("id"));
+                return ApiResponse.error(ErrorCode.CLIENT_NOT_FOUND, "id");
             }
 
             log.info("Client updated: id: {}", id);
@@ -243,15 +239,15 @@ public class ClientService {
     }
 
     public ApiResponse<Boolean> deleteClient(Long id) {
-        if (id == null || id <= 0) {
-            return ApiResponse.error(ErrorCode.INVALID_PARAM, Collections.singletonList("id"));
+        if (checkRequest.isInvalidId(id)) {
+            return ApiResponse.error(ErrorCode.INVALID_PARAM, "id");
         }
 
         try {
             int deleted = jdbcTemplate.update("delete from cm_client c where c.id = ?", id);
 
             if (deleted == 0) {
-                return ApiResponse.error(ErrorCode.CLIENT_NOT_FOUND, Collections.singletonList("id"));
+                return ApiResponse.error(ErrorCode.CLIENT_NOT_FOUND, "id");
             }
 
             log.info("Client deleted: id: {}", id);

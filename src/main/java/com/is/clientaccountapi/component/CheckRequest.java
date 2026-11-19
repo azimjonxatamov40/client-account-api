@@ -6,11 +6,18 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 
 @Slf4j
 @Component
 public class CheckRequest {
+    public static final DateTimeFormatter DATE_TIME = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
+    public boolean isInvalidId(Long id) {
+        return id == null || id <= 0;
+    }
+
     public boolean isEmpty(String value) {
         return value == null || value.isEmpty();
     }

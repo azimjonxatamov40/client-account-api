@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import org.springframework.http.ResponseEntity;
 
+import java.util.Collections;
 import java.util.List;
 
 @Getter
@@ -33,6 +34,10 @@ public class ApiResponse<T> {
 
     public static <T> ApiResponse<T> error(ErrorCode code, List<String> fields) {
         return error(code, code.getCause(), fields);
+    }
+
+    public static <T> ApiResponse<T> error(ErrorCode code, String field) {
+        return error(code, code.getCause(), Collections.singletonList(field));
     }
 
     public ResponseEntity<ApiResponse<T>> toResponse() {

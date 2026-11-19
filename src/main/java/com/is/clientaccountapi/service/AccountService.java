@@ -18,10 +18,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.interceptor.TransactionAspectSupport;
 
 import java.sql.Date;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -33,8 +31,6 @@ public class AccountService {
     private final JdbcTemplate jdbcTemplate;
     private final CheckRequest checkRequest;
     private final ClientService clientService;
-
-    private static final DateTimeFormatter DATE_TIME = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     private static final List<String> CURRENCIES = Arrays.asList("860", "840", "978", "643");
 
@@ -77,7 +73,7 @@ public class AccountService {
             .accountId(rs.getLong("account_id"))
             .amount(rs.getLong("amount"))
             .purpose(rs.getString("purpose"))
-            .createdAt(rs.getTimestamp("created_at").toLocalDateTime().format(DATE_TIME))
+            .createdAt(rs.getTimestamp("created_at").toLocalDateTime().format(CheckRequest.DATE_TIME))
             .build();
 
     public ApiResponse<AccountInfo> openAccount(Long clientId, AccountRequest request) {
@@ -104,7 +100,7 @@ public class AccountService {
 
         try {
             if (clientService.getActiveClient(clientId) == null) {
-                return ApiResponse.error(ErrorCode.CLIENT_NOT_FOUND, Collections.singletonList("clientId"));
+                return ApiResponse.error(ErrorCode.CLIENT_NOT_FOUND, "clientId");
             }
 
             String accountNumber = buildAccountNumber(clientId, request.getBalanceType(), request.getCurrency());
@@ -125,13 +121,13 @@ public class AccountService {
     }
 
     public ApiResponse<List<AccountInfo>> getClientAccounts(Long clientId) {
-        if (clientId == null || clientId <= 0) {
-            return ApiResponse.error(ErrorCode.INVALID_PARAM, Collections.singletonList("clientId"));
+        if (checkRequest.isInvalidId(clientId)) {
+            return ApiResponse.error(ErrorCode.INVALID_PARAM, "clientId");
         }
 
         try {
             if (clientService.getActiveClient(clientId) == null) {
-                return ApiResponse.error(ErrorCode.CLIENT_NOT_FOUND, Collections.singletonList("clientId"));
+                return ApiResponse.error(ErrorCode.CLIENT_NOT_FOUND, "clientId");
             }
 
             List<AccountInfo> accounts = jdbcTemplate.query(ACCOUNT_SELECT +
@@ -146,14 +142,14 @@ public class AccountService {
 
     @Transactional
     public ApiResponse<AccountInfo> deposit(Long id, DepositRequest request) {
-        if (id == null || id <= 0) {
-            return ApiResponse.error(ErrorCode.INVALID_PARAM, Collections.singletonList("id"));
+        if (checkRequest.isInvalidId(id)) {
+            return ApiResponse.error(ErrorCode.INVALID_PARAM, "id");
         }
         if (request.getAmount() == null) {
-            return ApiResponse.error(ErrorCode.EMPTY_PARAM, Collections.singletonList("amount"));
+            return ApiResponse.error(ErrorCode.EMPTY_PARAM, "amount");
         }
         if (request.getAmount() <= 0) {
-            return ApiResponse.error(ErrorCode.INVALID_PARAM, Collections.singletonList("amount"));
+            return ApiResponse.error(ErrorCode.INVALID_PARAM, "amount");
         }
 
         try {
@@ -164,7 +160,7 @@ public class AccountService {
 
             if (updated == 0) {
                 ErrorCode code = getAccount(id) == null ? ErrorCode.ACC_NOT_FOUND : ErrorCode.ACC_CLOSED;
-                return ApiResponse.error(code, Collections.singletonList("id"));
+                return ApiResponse.error(code, "id");
             }
 
             jdbcTemplate.update(OPERATION_INSERT, id, request.getAmount(), request.getPurpose());
@@ -183,7 +179,7 @@ public class AccountService {
         boolean hasTo = !checkRequest.isEmpty(to);
 
         List<String> fields = new ArrayList<>();
-        if (id == null || id <= 0) {
+        if (checkRequest.isInvalidId(id)) {
             fields.add("id");
         }
         if (hasFrom && !checkRequest.isDate(from)) {
@@ -200,7 +196,7 @@ public class AccountService {
             Integer count = jdbcTemplate.queryForObject(
                     "select count(*) from cm_account a where a.id = ?", Integer.class, id);
             if (count == null || count == 0) {
-                return ApiResponse.error(ErrorCode.ACC_NOT_FOUND, Collections.singletonList("id"));
+                return ApiResponse.error(ErrorCode.ACC_NOT_FOUND, "id");
             }
 
             StringBuilder sql = new StringBuilder("select o.id, \n" +
@@ -267,17 +263,17 @@ public class AccountService {
             AccountInfo to = accounts.get(toId);
 
             if (from == null) {
-                return ApiResponse.error(ErrorCode.ACC_NOT_FOUND, Collections.singletonList("fromAccountId"));
+                return ApiResponse.error(ErrorCode.ACC_NOT_FOUND, "fromAccountId");
             }
             if (to == null) {
-                return ApiResponse.error(ErrorCode.ACC_NOT_FOUND, Collections.singletonList("toAccountId"));
+                return ApiResponse.error(ErrorCode.ACC_NOT_FOUND, "toAccountId");
             }
 
             if (from.getState() != STATE_OPEN) {
-                return ApiResponse.error(ErrorCode.ACC_CLOSED, Collections.singletonList("fromAccountId"));
+                return ApiResponse.error(ErrorCode.ACC_CLOSED, "fromAccountId");
             }
             if (to.getState() != STATE_OPEN) {
-                return ApiResponse.error(ErrorCode.ACC_CLOSED, Collections.singletonList("toAccountId"));
+                return ApiResponse.error(ErrorCode.ACC_CLOSED, "toAccountId");
             }
 
             if (!from.getCurrency().equals(to.getCurrency())) {
@@ -289,7 +285,7 @@ public class AccountService {
                     " where a.id = ? \n" +
                     "   and a.balance >= ?", amount, fromId, amount);
             if (updated == 0) {
-                return ApiResponse.error(ErrorCode.INSUFFICIENT_FUNDS, Collections.singletonList("amount"));
+                return ApiResponse.error(ErrorCode.INSUFFICIENT_FUNDS, "amount");
             }
 
             jdbcTemplate.update("update cm_account a \n" +
@@ -317,8 +313,8 @@ public class AccountService {
     }
 
     public ApiResponse<AccountInfo> closeAccount(Long id) {
-        if (id == null || id <= 0) {
-            return ApiResponse.error(ErrorCode.INVALID_PARAM, Collections.singletonList("id"));
+        if (checkRequest.isInvalidId(id)) {
+            return ApiResponse.error(ErrorCode.INVALID_PARAM, "id");
         }
 
         try {
@@ -332,12 +328,12 @@ public class AccountService {
             if (updated == 0) {
                 AccountInfo account = getAccount(id);
                 if (account == null) {
-                    return ApiResponse.error(ErrorCode.ACC_NOT_FOUND, Collections.singletonList("id"));
+                    return ApiResponse.error(ErrorCode.ACC_NOT_FOUND, "id");
                 }
                 if (account.getState() == STATE_CLOSED) {
-                    return ApiResponse.error(ErrorCode.ACC_ALREADY_CLOSED, Collections.singletonList("id"));
+                    return ApiResponse.error(ErrorCode.ACC_ALREADY_CLOSED, "id");
                 }
-                return ApiResponse.error(ErrorCode.ACC_HAS_BALANCE, Collections.singletonList("balance"));
+                return ApiResponse.error(ErrorCode.ACC_HAS_BALANCE, "balance");
             }
 
             log.info("Account closed: id: {}", id);
