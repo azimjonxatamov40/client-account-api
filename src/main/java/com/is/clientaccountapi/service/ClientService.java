@@ -2,7 +2,6 @@ package com.is.clientaccountapi.service;
 
 import com.is.clientaccountapi.component.CheckRequest;
 import com.is.clientaccountapi.model.client.ClientInfo;
-import com.is.clientaccountapi.model.client.ClientPage;
 import com.is.clientaccountapi.model.client.ClientRequest;
 import com.is.clientaccountapi.model.result.ApiResponse;
 import com.is.clientaccountapi.model.result.ErrorCode;
@@ -108,7 +107,7 @@ public class ClientService {
         }
     }
 
-    public ApiResponse<ClientPage> getClients(Integer page, Integer size, String search) {
+    public ApiResponse<List<ClientInfo>> getClients(Integer page, Integer size, String search) {
         int p = page == null ? 0 : page;
         int s = size == null ? 20 : size;
 
@@ -137,33 +136,17 @@ public class ClientService {
         }
 
         try {
-            Long total = jdbcTemplate.queryForObject(
-                    "select count(*) from cm_client c \n" + where, Long.class, args.toArray());
-            long totalCount = total == null ? 0 : total;
+            String sql = "select * \n" +
+                    "  from (select t.*, rownum rn \n" +
+                    "          from (" + CLIENT_SELECT + where +
+                    "                 order by c.id) t \n" +
+                    "         where rownum <= ?) \n" +
+                    " where rn > ?";
 
-            List<ClientInfo> clients = new ArrayList<>();
-            if ((long) p * s < totalCount) {
-                String sql = "select * \n" +
-                        "  from (select t.*, rownum rn \n" +
-                        "          from (" + CLIENT_SELECT + where +
-                        "                 order by c.id) t \n" +
-                        "         where rownum <= ?) \n" +
-                        " where rn > ?";
+            args.add((p + 1) * s);
+            args.add(p * s);
 
-                args.add((p + 1) * s);
-                args.add(p * s);
-                clients = jdbcTemplate.query(sql, CLIENT_MAPPER, args.toArray());
-            }
-
-            ClientPage result = ClientPage.builder()
-                    .content(clients)
-                    .page(p)
-                    .size(s)
-                    .totalElements(totalCount)
-                    .totalPages((int) ((totalCount + s - 1) / s))
-                    .build();
-
-            return ApiResponse.ok(result, 200);
+            return ApiResponse.ok(jdbcTemplate.query(sql, CLIENT_MAPPER, args.toArray()), 200);
         } catch (Exception e) {
             return checkRequest.dbError(e);
         }

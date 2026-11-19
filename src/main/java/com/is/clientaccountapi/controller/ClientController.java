@@ -1,7 +1,6 @@
 package com.is.clientaccountapi.controller;
 
 import com.is.clientaccountapi.model.client.ClientInfo;
-import com.is.clientaccountapi.model.client.ClientPage;
 import com.is.clientaccountapi.model.client.ClientRequest;
 import com.is.clientaccountapi.model.result.ApiResponse;
 import com.is.clientaccountapi.service.ClientService;
@@ -9,6 +8,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @Slf4j
 @RestController
@@ -24,7 +25,7 @@ public class ClientController {
     }
 
     @GetMapping
-    public ResponseEntity<ApiResponse<ClientPage>> getClients(@RequestParam(required = false) Integer page,
+    public ResponseEntity<ApiResponse<List<ClientInfo>>> getClients(@RequestParam(required = false) Integer page,
                                                               @RequestParam(required = false) Integer size,
                                                               @RequestParam(required = false) String search) {
         log.info("GetClients start: page: {}, size: {}, search: {}", page, size, search);
